@@ -1,0 +1,79 @@
+{
+  "responses": [
+    {
+      "id": "1774722650950",
+      "score": 9,
+      "comment": "Plataforma muito estável, recomendo!",
+      "product": "hospedagem",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-28T18:30:50.950Z"
+    },
+    {
+      "id": "1774723363391",
+      "score": 2,
+      "comment": "Suporte demorou muito para responder.",
+      "product": "umbler-talk",
+      "customer_tier": "free",
+      "plan": "mensal",
+      "created_at": "2026-03-28T18:42:43.391Z"
+    },
+    {
+      "id": "1774723375538",
+      "score": 10,
+      "comment": "Melhor ferramenta de e-mail que já usei!",
+      "product": "email",
+      "customer_tier": "enterprise",
+      "plan": "anual",
+      "created_at": "2026-03-28T18:42:55.538Z"
+    },
+    {
+      "id": "1774723391340",
+      "score": 7,
+      "comment": "Funciona bem, mas poderia ter mais opções.",
+      "product": "hospedagem",
+      "customer_tier": "free",
+      "plan": "mensal",
+      "created_at": "2026-03-28T18:43:11.340Z"
+    },
+    {
+      "id": "1774723445167",
+      "score": 5,
+      "comment": "Tive instabilidade no serviço essa semana.",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-28T18:44:05.167Z"
+    },
+    {
+      "id": "1774723507808",
+      "score": 9,
+      "comment": "Painel muito intuitivo, adorei!",
+      "product": "email",
+      "customer_tier": "pro",
+      "plan": "mensal",
+      "created_at": "2026-03-28T18:45:07.808Z"
+    }
+  ],
+  "rules": {
+    "min_days_between_surveys": 90,
+    "triggers": [
+      "page_time",
+      "action_complete"
+    ],
+    "active_products": [
+      "hosting",
+      "email",
+      "dominio"
+    ],
+    "active_tiers": [
+      "free",
+      "pro",
+      "enterprise"
+    ]
+  },
+  "settings": {
+    "survey_title": "Como você avalia sua experiência?",
+    "show_comment_field": true
+  }
+}
