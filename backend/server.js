@@ -28,6 +28,11 @@ app.get('/teste-widget', (req, res) => {
 const npsRoutes = require('./routes/nps');
 app.use('/api/nps', npsRoutes);
 
+// ─── Rota raiz — redireciona para o dashboard ─────────────────────
+app.get('/', (req, res) => {
+  res.redirect('/dashboard/index.html');
+});
+
 // ─── Bloco 5: Iniciar servidor ────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Servidor NPS rodando em http://localhost:${PORT}`);
