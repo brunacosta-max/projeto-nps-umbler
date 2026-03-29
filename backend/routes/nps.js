@@ -215,7 +215,7 @@ router.get('/analytics', (req, res) => {
 
 // ─── Bloco 9: GET /api/nps/evolucao ──────────────────────────────
 router.get('/evolucao', (req, res) => {
-  const { product, customer_tier, plan } = req.query;
+  const { product, customer_tier, plan, data_inicio, data_fim } = req.query;
 
   const banco = lerBanco();
   let respostas = banco.responses;
@@ -223,30 +223,47 @@ router.get('/evolucao', (req, res) => {
   if (product)       respostas = respostas.filter(r => r.product === product);
   if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
   if (plan)          respostas = respostas.filter(r => r.plan === plan);
+  if (data_inicio)   respostas = respostas.filter(r => r.created_at >= data_inicio);
+  if (data_fim)      respostas = respostas.filter(r => r.created_at <= data_fim);
 
-  // Agrupar por mês
-  const porMes = {};
+  // Decide granularidade: dias se período <= 31 dias, senão meses
+  let granularidade = 'mes';
+  if (data_inicio && data_fim) {
+    const diff = (new Date(data_fim) - new Date(data_inicio)) / (1000 * 60 * 60 * 24);
+    if (diff <= 31) granularidade = 'dia';
+  }
+
+  const porPeriodo = {};
   respostas.forEach(r => {
     const data  = new Date(r.created_at);
-    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-    if (!porMes[chave]) porMes[chave] = [];
-    porMes[chave].push(r.score);
+    const chave = granularidade === 'dia'
+      ? `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+      : `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+    if (!porPeriodo[chave]) porPeriodo[chave] = [];
+    porPeriodo[chave].push(r.score);
   });
 
-  // Calcular NPS por mês
-  const evolucao = Object.entries(porMes)
+  const evolucao = Object.entries(porPeriodo)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, scores]) => {
+    .map(([periodo, scores]) => {
       const total      = scores.length;
       const promotores = scores.filter(s => s >= 9).length;
       const detratores = scores.filter(s => s <= 6).length;
       const nps        = Math.round(((promotores - detratores) / total) * 100);
-      const [ano, m]   = mes.split('-');
-      const label      = new Date(ano, m - 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      return { mes, label, nps, total, promotores, detratores };
+
+      let label;
+      if (granularidade === 'dia') {
+        const [ano, mes, dia] = periodo.split('-');
+        label = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      } else {
+        const [ano, mes] = periodo.split('-');
+        label = new Date(ano, mes - 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      }
+
+      return { periodo, label, nps, total, promotores, detratores, granularidade };
     });
 
-  res.status(200).json({ evolucao });
+  res.status(200).json({ evolucao, granularidade });
 });
 
 // ─── Bloco 8: PATCH /api/nps/:id/social-proof ────────────────────

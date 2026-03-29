@@ -791,7 +791,9 @@
         const ev   = data.evolucao || [];
 
         document.getElementById('badge-evolucao').textContent =
-          ev.length > 0 ? `${ev.length} ${ev.length === 1 ? 'mês' : 'meses'}` : 'sem dados';
+          ev.length > 0
+            ? `${ev.length} ${data.granularidade === 'dia' ? ev.length === 1 ? 'dia' : 'dias' : ev.length === 1 ? 'mês' : 'meses'}`
+            : 'sem dados';
 
         if (ev.length === 0) return;
 
