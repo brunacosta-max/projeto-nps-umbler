@@ -1,4 +1,3 @@
-# Projeto NPS Umbler
 # 📊 Umbler NPS — Sistema de Coleta e Análise de NPS
 
 Sistema completo de Net Promoter Score desenvolvido para a Umbler, composto por um snippet JavaScript embeddable nos produtos web e um dashboard analítico com inteligência artificial.
@@ -69,10 +68,43 @@ npm run dev
 
 O servidor sobe em `http://localhost:3000`.
 
-| URL | Descrição |
-|-----|-----------|
-| `http://localhost:3000/dashboard/index.html` | Dashboard analítico |
-| `http://localhost:3000/teste/teste-widget.html` | Página de teste do widget |
+---
+
+## 🖥️ Como testar o projeto
+
+Com o servidor rodando, acesse as URLs abaixo no navegador:
+
+### Dashboard analítico
+```
+http://localhost:3000/dashboard/index.html
+```
+Exibe o painel completo com métricas, gráficos, insights de IA, radar de risco, oportunidades de upsell e exportação CSV.
+
+### Widget de coleta (snippet)
+```
+http://localhost:3000/teste/teste-widget.html
+```
+Simula um produto da Umbler com o widget instalado. Após 2 segundos o popup aparece no canto inferior direito.
+
+---
+
+## 🔄 Resetando o widget para novo teste
+
+O widget possui uma regra de **cooldown de 90 dias** — após responder uma pesquisa, ele não aparece novamente para o mesmo usuário nesse período. Essa é uma regra padrão do NPS para não interromper a experiência do cliente.
+
+Para resetar e testar novamente:
+
+1. Acesse `http://localhost:3000/teste/teste-widget.html`
+2. Pressione `F12` para abrir as ferramentas do desenvolvedor
+3. Vá na aba **Console**
+4. Digite o comando abaixo e pressione Enter:
+
+```javascript
+localStorage.clear()
+```
+
+5. Recarregue a página com `F5`
+6. O widget aparecerá novamente após 2 segundos
 
 ---
 
