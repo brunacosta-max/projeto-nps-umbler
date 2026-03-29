@@ -1,0 +1,164 @@
+/* ─── Reset e container principal ───────────────────────────────── */
+#umbler-nps-widget * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#umbler-nps-widget {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  top: auto !important;
+  left: auto !important;
+  width: 360px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  padding: 24px;
+  z-index: 999999;
+  animation: nps-slide-in 0.3s ease;
+}
+
+@keyframes nps-slide-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Cabeçalho ──────────────────────────────────────────────────── */
+#umbler-nps-widget .nps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+#umbler-nps-widget .nps-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  line-height: 1.4;
+  max-width: 290px;
+}
+
+#umbler-nps-widget .nps-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0 0 8px;
+}
+
+#umbler-nps-widget .nps-close:hover {
+  color: #333;
+}
+
+/* ─── Escala de notas ────────────────────────────────────────────── */
+#umbler-nps-widget .nps-scale {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+#umbler-nps-widget .nps-btn {
+  flex: 1;
+  height: 36px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#umbler-nps-widget .nps-btn:hover {
+  border-color: #6c63ff;
+  color: #6c63ff;
+}
+
+#umbler-nps-widget .nps-btn.selecionado {
+  background: #6c63ff;
+  border-color: #6c63ff;
+  color: #fff;
+}
+
+/* ─── Legendas da escala ─────────────────────────────────────────── */
+#umbler-nps-widget .nps-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+#umbler-nps-widget .nps-labels span {
+  font-size: 11px;
+  color: #999;
+}
+
+/* ─── Campo de comentário ────────────────────────────────────────── */
+#umbler-nps-widget .nps-comment {
+  width: 100%;
+  height: 72px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #333;
+  resize: none;
+  margin-bottom: 16px;
+  transition: border-color 0.15s ease;
+}
+
+#umbler-nps-widget .nps-comment:focus {
+  outline: none;
+  border-color: #6c63ff;
+}
+
+#umbler-nps-widget .nps-comment::placeholder {
+  color: #bbb;
+}
+
+/* ─── Botão enviar ───────────────────────────────────────────────── */
+#umbler-nps-widget .nps-submit {
+  width: 100%;
+  height: 40px;
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+#umbler-nps-widget .nps-submit:hover {
+  background: #5a52d5;
+}
+
+#umbler-nps-widget .nps-submit:disabled {
+  background: #c5c2f0;
+  cursor: not-allowed;
+}
+
+/* ─── Tela de agradecimento ──────────────────────────────────────── */
+#umbler-nps-widget .nps-obrigado {
+  text-align: center;
+  padding: 8px 0;
+}
+
+#umbler-nps-widget .nps-obrigado p {
+  font-size: 15px;
+  color: #1a1a2e;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+#umbler-nps-widget .nps-obrigado span {
+  font-size: 13px;
+  color: #888;
+}

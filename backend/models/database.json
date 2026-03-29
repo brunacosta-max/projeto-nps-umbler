@@ -53,6 +53,24 @@
       "customer_tier": "pro",
       "plan": "mensal",
       "created_at": "2026-03-28T18:45:07.808Z"
+    },
+    {
+      "id": "1774747568402",
+      "score": 10,
+      "comment": "Muito bom",
+      "product": "não informado",
+      "customer_tier": "não informado",
+      "plan": "não informado",
+      "created_at": "2026-03-29T01:26:08.402Z"
+    },
+    {
+      "id": "1774753103442",
+      "score": 8,
+      "comment": "Muito bom!",
+      "product": "hospedagem",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T02:58:23.442Z"
     }
   ],
   "rules": {
