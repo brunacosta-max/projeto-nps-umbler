@@ -53,12 +53,37 @@ npm install
 
 ### Configuração
 
-Crie o arquivo `.env` na raiz do projeto:
+Crie o arquivo `.env` na raiz do projeto baseado no `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` com suas configurações:
 
 ```env
 PORT=3000
 GROQ_API_KEY=sua_chave_groq_aqui
 ```
+
+> **⚠️ Importante:** O sistema funciona completamente sem a chave do Groq — coleta notas, salva dados e exibe o dashboard normalmente. A chave é necessária apenas para ativar a análise de IA (categoria, subcategoria e insights). Para obter uma chave gratuita acesse [console.groq.com](https://console.groq.com), crie uma conta e gere uma API Key em menos de 2 minutos.
+
+### Populando o banco com dados de teste
+
+O repositório já vem com dados históricos dos últimos 5 meses. Caso queira resetar e repopular:
+
+```bash
+node backend/popular-banco.js
+```
+
+Isso gera respostas simuladas com perfis realistas por produto:
+
+| Produto | Perfil |
+|---------|--------|
+| hospedagem | NPS alto e estável |
+| dominio | NPS excelente e consistente |
+| email | NPS médio em crescimento |
+| umbler-talk | NPS crítico em recuperação |
 
 ### Rodando em desenvolvimento
 
@@ -250,6 +275,31 @@ Zero dependências de build, carregamento instantâneo e fácil manutenção. O 
 
 **Por que snippet e dashboard separados?**
 O snippet vive nos produtos dos clientes (contexto de coleta), o dashboard vive internamente na Umbler (contexto de análise). Misturá-los criaria acoplamento desnecessário e riscos de segurança.
+
+---
+
+## 🔧 Solução de problemas comuns
+
+**Porta 3000 já está em uso**
+```bash
+# Windows — descubra o processo usando a porta
+netstat -ano | findstr :3000
+
+# Encerre o processo (substitua XXXX pelo PID encontrado)
+taskkill /PID XXXX /F
+
+# Suba o servidor novamente
+npm run dev
+```
+
+**Widget não aparece na página de teste**
+O widget possui cooldown de 90 dias. Para resetar, veja a seção [Resetando o widget para novo teste](#-resetando-o-widget-para-novo-teste).
+
+**Insights de IA mostram "Não foi possível analisar"**
+Verifique se a `GROQ_API_KEY` está correta no `.env` e se o servidor foi reiniciado após a alteração. Sem a chave, o sistema funciona normalmente sem análise de IA.
+
+**Dashboard não carrega dados**
+Confirme que o servidor está rodando em `http://localhost:3000` antes de acessar o dashboard.
 
 ---
 
