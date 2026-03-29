@@ -3,7 +3,9 @@
 // Ele carrega o CSS e o JS do widget automaticamente.
 
 (function () {
-  const BASE = 'http://localhost:3000';
+  const BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://projeto-nps-umbler-production.up.railway.app';
 
   const v = Date.now();
 

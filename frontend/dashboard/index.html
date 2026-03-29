@@ -829,7 +829,9 @@
   </div>
 
   <script>
-    const API = 'http://localhost:3000';
+    const API = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://projeto-nps-umbler-production.up.railway.app';
     let chartBarras  = null;
     let chartDonut   = null;
     let chartEvolucao = null;

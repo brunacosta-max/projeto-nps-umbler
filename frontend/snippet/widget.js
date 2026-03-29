@@ -1,6 +1,10 @@
 // ─── Configuração vinda do produto que instalou o snippet ────────
-const CONFIG = window.UmblerNPS || {};
-const API_URL = CONFIG.api_url || 'http://localhost:3000';
+const CONFIG  = window.UmblerNPS || {};
+const API_URL = CONFIG.api_url || (
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://projeto-nps-umbler-production.up.railway.app'
+);
 
 // ─── Verificar se já respondeu recentemente ───────────────────────
 function jaRespondeu() {
