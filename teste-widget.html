@@ -13,7 +13,22 @@
   <h1>Página de Teste - Umbler</h1>
   <p>Se o servidor estiver ligado, o widget aparecerá em 2 segundos...</p>
 
-  <script src="http://localhost:3000/snippet/config-teste.js"></script>
-  <script src="http://localhost:3000/snippet/embed.js"></script>
+  <script>
+    const BASE = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://projeto-nps-umbler-production.up.railway.app';
+
+    window.UmblerNPS = {
+      product:       "hospedagem",
+      customer_tier: "pro",
+      plan:          "anual",
+      api_url:       BASE,
+      delay_ms:      2000
+    };
+
+    const script = document.createElement('script');
+    script.src   = `${BASE}/snippet/embed.js`;
+    document.body.appendChild(script);
+  </script>
 </body>
 </html>
