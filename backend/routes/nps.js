@@ -213,6 +213,42 @@ router.get('/analytics', (req, res) => {
   res.status(200).json({ detratores, oportunidades, voz_cliente: vozCliente });
 });
 
+// ─── Bloco 9: GET /api/nps/evolucao ──────────────────────────────
+router.get('/evolucao', (req, res) => {
+  const { product, customer_tier, plan } = req.query;
+
+  const banco = lerBanco();
+  let respostas = banco.responses;
+
+  if (product)       respostas = respostas.filter(r => r.product === product);
+  if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
+  if (plan)          respostas = respostas.filter(r => r.plan === plan);
+
+  // Agrupar por mês
+  const porMes = {};
+  respostas.forEach(r => {
+    const data  = new Date(r.created_at);
+    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+    if (!porMes[chave]) porMes[chave] = [];
+    porMes[chave].push(r.score);
+  });
+
+  // Calcular NPS por mês
+  const evolucao = Object.entries(porMes)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([mes, scores]) => {
+      const total      = scores.length;
+      const promotores = scores.filter(s => s >= 9).length;
+      const detratores = scores.filter(s => s <= 6).length;
+      const nps        = Math.round(((promotores - detratores) / total) * 100);
+      const [ano, m]   = mes.split('-');
+      const label      = new Date(ano, m - 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+      return { mes, label, nps, total, promotores, detratores };
+    });
+
+  res.status(200).json({ evolucao });
+});
+
 // ─── Bloco 8: PATCH /api/nps/:id/social-proof ────────────────────
 router.patch('/:id/social-proof', (req, res) => {
   const banco = lerBanco();

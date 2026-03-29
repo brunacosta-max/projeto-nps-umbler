@@ -643,6 +643,15 @@
       </div>
     </div>
 
+    <!-- Gráfico de evolução -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header">
+        <span class="card-title">Evolução do NPS ao longo do tempo</span>
+        <span class="card-badge" id="badge-evolucao">carregando...</span>
+      </div>
+      <canvas id="chart-evolucao" height="70"></canvas>
+    </div>
+
     <!-- Insights IA -->
     <div class="insights-card">
       <div class="insights-header">
@@ -770,8 +779,75 @@
 
   <script>
     const API = 'http://localhost:3000';
-    let chartBarras = null;
-    let chartDonut  = null;
+    let chartBarras  = null;
+    let chartDonut   = null;
+    let chartEvolucao = null;
+
+    // ─── Evolução mensal ──────────────────────────────────────────
+    async function carregarEvolucao() {
+      try {
+        const r    = await fetch(`${API}/api/nps/evolucao${filtros()}`);
+        const data = await r.json();
+        const ev   = data.evolucao || [];
+
+        document.getElementById('badge-evolucao').textContent =
+          ev.length > 0 ? `${ev.length} ${ev.length === 1 ? 'mês' : 'meses'}` : 'sem dados';
+
+        if (ev.length === 0) return;
+
+        const labels = ev.map(e => e.label);
+        const valores = ev.map(e => e.nps);
+        const cores   = valores.map(v =>
+          v >= 50 ? '#00C853' : v >= 0 ? '#F59E0B' : '#EF4444'
+        );
+
+        const ctx = document.getElementById('chart-evolucao').getContext('2d');
+        if (chartEvolucao) chartEvolucao.destroy();
+        chartEvolucao = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              data:            valores,
+              borderColor:     '#00C853',
+              backgroundColor: 'rgba(0,200,83,0.08)',
+              borderWidth:     2.5,
+              pointBackgroundColor: cores,
+              pointBorderColor:    cores,
+              pointRadius:     5,
+              pointHoverRadius: 7,
+              fill:            true,
+              tension:         0.4
+            }]
+          },
+          options: {
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const e = ev[ctx.dataIndex];
+                    return [`NPS: ${e.nps}`, `Respostas: ${e.total}`, `Promotores: ${e.promotores} | Detratores: ${e.detratores}`];
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                min: -100, max: 100,
+                ticks: { font: { size: 11 } },
+                grid:  { color: '#F3F4F6' },
+                border: { dash: [4, 4] }
+              },
+              x: {
+                ticks: { font: { size: 11 } },
+                grid:  { display: false }
+              }
+            }
+          }
+        });
+      } catch(e) { console.error('Erro evolução:', e); }
+    }
 
     // ─── Analytics ────────────────────────────────────────────────
     async function carregarAnalytics() {
@@ -861,7 +937,7 @@
 
     // ─── Carregar todos os dados ──────────────────────────────────
     async function carregarDados() {
-      await Promise.all([carregarScore(), carregarRespostas(), carregarInsights(), carregarAnalytics()]);
+      await Promise.all([carregarScore(), carregarRespostas(), carregarInsights(), carregarEvolucao(), carregarAnalytics()]);
     }
 
     // ─── Montar query string dos filtros ─────────────────────────
