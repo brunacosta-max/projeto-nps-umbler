@@ -1,8 +1,16 @@
 const Groq = require('groq-sdk');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-console.log('Groq API carregada:', process.env.GROQ_API_KEY ? 'SIM' : 'NÃO');
+let groq = null;
+try {
+  if (process.env.GROQ_API_KEY) {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    console.log('Groq API carregada: SIM');
+  } else {
+    console.log('Groq API carregada: NÃO — sistema funcionará sem IA');
+  }
+} catch (e) {
+  console.log('Groq API carregada: NÃO —', e.message);
+}
 
 async function analisarComentario(score, comment, product) {
   if (!comment || comment.trim() === '') {
@@ -10,6 +18,14 @@ async function analisarComentario(score, comment, product) {
       categoria:    'sem comentário',
       subcategoria: 'sem comentário',
       resumo:       'Cliente não deixou comentário.'
+    };
+  }
+
+  if (!groq) {
+    return {
+      categoria:    score >= 9 ? 'recursos' : score >= 7 ? 'usabilidade' : 'suporte',
+      subcategoria: 'geral',
+      resumo:       score >= 9 ? `Cliente satisfeito com ${product}.` : `Cliente insatisfeito com ${product}.`
     };
   }
 
@@ -52,12 +68,12 @@ Categorias e subcategorias válidas:
 }
 
 async function gerarInsights(respostas, produto) {
-  if (respostas.length === 0) {
+  if (!groq || respostas.length === 0) {
     return {
-      pontos_criticos:      'Nenhuma resposta coletada ainda.',
-      pontos_positivos:     'Nenhuma resposta coletada ainda.',
+      pontos_criticos:      respostas.length === 0 ? 'Nenhuma resposta coletada ainda.' : 'IA não disponível.',
+      pontos_positivos:     respostas.length === 0 ? 'Nenhuma resposta coletada ainda.' : 'IA não disponível.',
       produto_mais_critico: 'indefinido',
-      acao_recomendada:     'Colete mais respostas para gerar insights.',
+      acao_recomendada:     respostas.length === 0 ? 'Colete mais respostas.' : 'Configure a chave GROQ_API_KEY.',
       alerta:               false
     };
   }
