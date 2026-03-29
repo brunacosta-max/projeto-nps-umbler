@@ -5,18 +5,13 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 console.log('Groq API carregada:', process.env.GROQ_API_KEY ? 'SIM' : 'NÃO');
 
 async function analisarComentario(score, comment, product) {
-  console.log('analisarComentario chamado:', { score, comment, product });
-
   if (!comment || comment.trim() === '') {
-    console.log('Sem comentário — retornando padrão');
     return {
       categoria:    'sem comentário',
       subcategoria: 'sem comentário',
       resumo:       'Cliente não deixou comentário.'
     };
   }
-
-  console.log('Chamando Groq...');
 
   const prompt = `Você é um analista de NPS da Umbler. Um cliente avaliou o produto "${product}" com nota ${score}/10 e disse: "${comment}".
 
@@ -41,7 +36,6 @@ Categorias e subcategorias válidas:
     });
     const texto  = response.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(texto);
-    console.log('Groq respondeu:', parsed);
     return {
       categoria:    parsed.categoria    || 'outro',
       subcategoria: parsed.subcategoria || 'geral',
