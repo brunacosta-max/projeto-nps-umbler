@@ -266,6 +266,48 @@ router.get('/evolucao', (req, res) => {
   res.status(200).json({ evolucao, granularidade });
 });
 
+// ─── Bloco 10: GET /api/nps/exportar ─────────────────────────────
+router.get('/exportar', (req, res) => {
+  const { product, customer_tier, plan, data_inicio, data_fim } = req.query;
+
+  const banco = lerBanco();
+  let respostas = banco.responses;
+
+  if (product)       respostas = respostas.filter(r => r.product === product);
+  if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
+  if (plan)          respostas = respostas.filter(r => r.plan === plan);
+  if (data_inicio)   respostas = respostas.filter(r => r.created_at >= data_inicio);
+  if (data_fim)      respostas = respostas.filter(r => r.created_at <= data_fim);
+
+  const cabecalho = ['id', 'score', 'classificacao', 'product', 'customer_tier', 'plan', 'comment', 'ia_categoria', 'ia_subcategoria', 'ia_resumo', 'created_at'];
+
+  const linhas = respostas.map(r => {
+    const classificacao = r.score >= 9 ? 'promotor' : r.score >= 7 ? 'neutro' : 'detrator';
+    const comment = (r.comment || '').replace(/"/g, '""');
+    const resumo  = (r.ia_resumo || '').replace(/"/g, '""');
+    return [
+      r.id,
+      r.score,
+      classificacao,
+      r.product,
+      r.customer_tier,
+      r.plan,
+      `"${comment}"`,
+      r.ia_categoria  || '',
+      r.ia_subcategoria || '',
+      `"${resumo}"`,
+      new Date(r.created_at).toLocaleString('pt-BR')
+    ].join(',');
+  });
+
+  const csv      = [cabecalho.join(','), ...linhas].join('\n');
+  const filename = `nps-umbler-${new Date().toISOString().split('T')[0]}.csv`;
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send('\uFEFF' + csv);
+});
+
 // ─── Bloco 8: PATCH /api/nps/:id/social-proof ────────────────────
 router.patch('/:id/social-proof', (req, res) => {
   const banco = lerBanco();

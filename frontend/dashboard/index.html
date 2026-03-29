@@ -461,6 +461,56 @@
     .empty-icon { font-size: 40px; margin-bottom: 12px; }
     .empty-text { font-size: 14px; }
 
+    /* ─── Paginação ───────────────────────────────────────────────── */
+    .paginacao {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .paginacao-info {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .paginacao-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-pag {
+      height: 32px;
+      min-width: 32px;
+      padding: 0 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-pag:hover:not(:disabled) {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-pag.ativo {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .btn-pag:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     /* ─── Seções analíticas ──────────────────────────────────────── */
     .secao-grid {
       display: grid;
@@ -521,6 +571,7 @@
       </div>
     </a>
     <div class="navbar-right">
+      <button class="btn-refresh" onclick="exportarCSV()">↓ Exportar CSV</button>
       <button class="btn-refresh" onclick="carregarDados()">↻ Atualizar</button>
     </div>
   </nav>
@@ -783,6 +834,72 @@
     let chartDonut   = null;
     let chartEvolucao = null;
 
+    // ─── Estado de paginação ──────────────────────────────────────
+    const paginas = {
+      radar:        { atual: 1, porPagina: 5,  dados: [] },
+      oportunidades:{ atual: 1, porPagina: 5,  dados: [] },
+      respostas:    { atual: 1, porPagina: 10, dados: [] },
+      socialProof:  { atual: 1, porPagina: 3,  dados: [] },
+      roadmap:      { atual: 1, porPagina: 3,  dados: [] },
+    };
+
+    function renderPaginacao(chave, containerId, renderFn) {
+      const estado  = paginas[chave];
+      const total   = estado.dados.length;
+      const totalPg = Math.ceil(total / estado.porPagina);
+      const inicio  = (estado.atual - 1) * estado.porPagina;
+      const fim     = Math.min(inicio + estado.porPagina, total);
+      const fatia   = estado.dados.slice(inicio, fim);
+
+      renderFn(fatia);
+
+      const container = document.getElementById(containerId);
+      const anterior  = document.getElementById(`${containerId}-pag`);
+      if (anterior) anterior.remove();
+
+      if (total <= estado.porPagina) return;
+
+      const pag = document.createElement('div');
+      pag.id    = `${containerId}-pag`;
+      pag.className = 'paginacao';
+
+      const nums = [];
+      for (let i = 1; i <= totalPg; i++) {
+        if (i === 1 || i === totalPg || Math.abs(i - estado.atual) <= 1) {
+          nums.push(i);
+        } else if (nums[nums.length - 1] !== '...') {
+          nums.push('...');
+        }
+      }
+
+      pag.innerHTML = `
+        <span class="paginacao-info">${inicio + 1}–${fim} de ${total} registros</span>
+        <div class="paginacao-btns">
+          <button class="btn-pag" onclick="mudarPagina('${chave}','${containerId}',${estado.atual - 1})" ${estado.atual === 1 ? 'disabled' : ''}>‹</button>
+          ${nums.map(n => n === '...'
+            ? `<button class="btn-pag" disabled>…</button>`
+            : `<button class="btn-pag ${n === estado.atual ? 'ativo' : ''}" onclick="mudarPagina('${chave}','${containerId}',${n})">${n}</button>`
+          ).join('')}
+          <button class="btn-pag" onclick="mudarPagina('${chave}','${containerId}',${estado.atual + 1})" ${estado.atual === totalPg ? 'disabled' : ''}>›</button>
+        </div>
+      `;
+
+      container.parentElement.appendChild(pag);
+    }
+
+    function mudarPagina(chave, containerId, pagina) {
+      const estado  = paginas[chave];
+      const totalPg = Math.ceil(estado.dados.length / estado.porPagina);
+      if (pagina < 1 || pagina > totalPg) return;
+      estado.atual = pagina;
+
+      if (chave === 'radar')         renderPaginacao('radar',         'radar-risco-body',    renderRadarRisco);
+      if (chave === 'oportunidades') renderPaginacao('oportunidades', 'oportunidades-body',  renderOportunidades);
+      if (chave === 'respostas')     renderPaginacao('respostas',     'tabela-body',         renderTabela);
+      if (chave === 'socialProof')   renderPaginacao('socialProof',   'social-proof-lista',  renderSocialProof);
+      if (chave === 'roadmap')       renderPaginacao('roadmap',       'roadmap-lista',       renderRoadmap);
+    }
+
     // ─── Evolução mensal ──────────────────────────────────────────
     async function carregarEvolucao() {
       try {
@@ -856,8 +973,14 @@
       try {
         const r    = await fetch(`${API}/api/nps/analytics${filtros()}`);
         const data = await r.json();
-        renderRadarRisco(data.detratores);
-        renderOportunidades(data.oportunidades);
+
+        paginas.radar.dados         = data.detratores   || [];
+        paginas.radar.atual         = 1;
+        paginas.oportunidades.dados = data.oportunidades || [];
+        paginas.oportunidades.atual = 1;
+
+        renderPaginacao('radar',         'radar-risco-body',   renderRadarRisco);
+        renderPaginacao('oportunidades', 'oportunidades-body', renderOportunidades);
         renderVozCliente(data.voz_cliente);
       } catch(e) { console.error('Erro analytics:', e); }
     }
@@ -865,11 +988,11 @@
     function renderRadarRisco(detratores) {
       const el = document.getElementById('radar-risco-body');
       if (!detratores.length) {
-        el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhum detrator recente. Ótimo sinal!</div></div>`;
+        el.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhum detrator recente. Ótimo sinal!</div></div></td></tr>`;
         return;
       }
       el.innerHTML = detratores.map(r => {
-        const corRisco = r.risco === 'alto' ? '#EF4444' : r.risco === 'medio' ? '#F59E0B' : '#6B7280';
+        const corRisco   = r.risco === 'alto' ? '#EF4444' : r.risco === 'medio' ? '#F59E0B' : '#6B7280';
         const labelRisco = r.risco === 'alto' ? '🔴 Alto' : r.risco === 'medio' ? '🟡 Médio' : '⚪ Baixo';
         const data = new Date(r.created_at).toLocaleDateString('pt-BR');
         return `<tr style="border-bottom:1px solid var(--border)">
@@ -887,7 +1010,7 @@
     function renderOportunidades(oportunidades) {
       const el = document.getElementById('oportunidades-body');
       if (!oportunidades.length) {
-        el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Nenhuma oportunidade identificada ainda.</div></div>`;
+        el.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Nenhuma oportunidade identificada ainda.</div></div></td></tr>`;
         return;
       }
       el.innerHTML = oportunidades.map(r => {
@@ -904,37 +1027,63 @@
       }).join('');
     }
 
-    function renderVozCliente(voz) {
-      const spEl = document.getElementById('social-proof-lista');
-      spEl.innerHTML = (voz.social_proof || []).map(r => `
+    function renderSocialProof(items) {
+      const el = document.getElementById('social-proof-lista');
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.style.gap = '12px';
+      el.innerHTML = items.length ? items.map(r => `
         <div style="background:var(--bg);border-radius:10px;padding:16px;border:1px solid var(--border)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span class="score-badge score-promotor" style="width:auto;padding:0 10px">${r.score} ★</span>
             <span class="tag">${r.product}</span>
-            <button onclick="toggleSocialProof(this, '${r.score}')"
+            <button onclick="toggleSocialProof(this)"
               style="font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:${r.aprovado ? '#DCFCE7' : 'var(--border)'};color:${r.aprovado ? '#166534' : 'var(--text-muted)'}">
               ${r.aprovado ? '✓ Aprovado' : 'Aprovar'}
             </button>
           </div>
           <p style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic">"${r.comment}"</p>
         </div>
-      `).join('') || '<p style="color:var(--text-muted);font-size:13px">Nenhum comentário positivo longo ainda.</p>';
+      `).join('') : '<p style="color:var(--text-muted);font-size:13px">Nenhum comentário positivo longo ainda.</p>';
+    }
 
-      const rmEl = document.getElementById('roadmap-lista');
-      const categorias = Object.entries(voz.roadmap || {});
-      rmEl.innerHTML = categorias.length ? categorias.map(([cat, comments]) => `
+    function renderRoadmap(items) {
+      const el = document.getElementById('roadmap-lista');
+      el.innerHTML = items.length ? items.map(([cat, comments]) => `
         <div style="margin-bottom:16px">
           <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">${cat} (${comments.length})</div>
-          ${comments.slice(0,3).map(c => `<div style="font-size:13px;color:var(--text);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--amber)">"${c}"</div>`).join('')}
+          ${comments.slice(0,3).map(c => `
+            <div style="font-size:13px;color:var(--text);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--amber)">"${c}"</div>
+          `).join('')}
         </div>
       `).join('') : '<p style="color:var(--text-muted);font-size:13px">Nenhum feedback de neutro ainda.</p>';
     }
 
-    function toggleSocialProof(btn, score) {
+    function renderVozCliente(voz) {
+      paginas.socialProof.dados = voz.social_proof || [];
+      paginas.socialProof.atual = 1;
+      renderPaginacao('socialProof', 'social-proof-lista', renderSocialProof);
+
+      const roadmapEntries = Object.entries(voz.roadmap || {});
+      paginas.roadmap.dados = roadmapEntries;
+      paginas.roadmap.atual = 1;
+      renderPaginacao('roadmap', 'roadmap-lista', renderRoadmap);
+    }
+
+    function toggleSocialProof(btn) {
       const aprovado = btn.textContent.trim() === 'Aprovar';
       btn.style.background = aprovado ? '#DCFCE7' : 'var(--border)';
       btn.style.color = aprovado ? '#166534' : 'var(--text-muted)';
       btn.textContent = aprovado ? '✓ Aprovado' : 'Aprovar';
+    }
+
+    // ─── Exportar CSV ─────────────────────────────────────────────
+    function exportarCSV() {
+      const url = `${API}/api/nps/exportar${filtros()}`;
+      const a   = document.createElement('a');
+      a.href    = url;
+      a.download = `nps-umbler-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
     }
 
     // ─── Carregar todos os dados ──────────────────────────────────
@@ -1005,7 +1154,10 @@
 
         document.getElementById('badge-total').textContent = respostas.length + ' respostas';
 
-        renderTabela(respostas);
+        paginas.respostas.dados = [...respostas].reverse();
+        paginas.respostas.atual = 1;
+
+        renderPaginacao('respostas', 'tabela-body', renderTabela);
         renderBarras(respostas);
       } catch(e) { console.error('Erro respostas:', e); }
     }
@@ -1122,7 +1274,6 @@
       });
     }
 
-    // ─── Tabela ───────────────────────────────────────────────────
     function renderTabela(respostas) {
       const tbody = document.getElementById('tabela-body');
 
@@ -1136,9 +1287,8 @@
         return;
       }
 
-      tbody.innerHTML = [...respostas].reverse().map(r => {
-        const cls = r.score >= 9 ? 'score-promotor' : r.score >= 7 ? 'score-neutro' : 'score-detrator';
-        const sentCls = r.ia_sentimento ? `sentiment-${r.ia_sentimento}` : '';
+      tbody.innerHTML = respostas.map(r => {
+        const cls  = r.score >= 9 ? 'score-promotor' : r.score >= 7 ? 'score-neutro' : 'score-detrator';
         const data = new Date(r.created_at).toLocaleDateString('pt-BR');
         const hora = new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
