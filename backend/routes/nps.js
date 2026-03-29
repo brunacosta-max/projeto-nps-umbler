@@ -108,9 +108,36 @@ router.get('/score', (req, res) => {
 
 // ─── Bloco 6: GET /api/nps/insights ──────────────────────────────
 router.get('/insights', async (req, res) => {
-  const banco     = lerBanco();
-  const insights  = await gerarInsights(banco.responses);
-  res.status(200).json(insights);
+  const { product, customer_tier, plan, data_inicio, data_fim } = req.query;
+
+  const banco = lerBanco();
+  let respostas = banco.responses;
+
+  if (product)       respostas = respostas.filter(r => r.product === product);
+  if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
+  if (plan)          respostas = respostas.filter(r => r.plan === plan);
+  if (data_inicio)   respostas = respostas.filter(r => r.created_at >= data_inicio);
+  if (data_fim)      respostas = respostas.filter(r => r.created_at <= data_fim);
+
+  // Se nenhum filtro de produto, gera insights por produto separadamente
+  if (!product) {
+    const produtos = [...new Set(banco.responses.map(r => r.product))];
+    const insightsPorProduto = await Promise.all(
+      produtos.map(async p => {
+        const resp = respostas.filter(r => r.product === p);
+        if (resp.length === 0) return null;
+        const insight = await gerarInsights(resp, p);
+        return { produto: p, total: resp.length, ...insight };
+      })
+    );
+    return res.status(200).json({
+      modo: 'por_produto',
+      insights: insightsPorProduto.filter(Boolean)
+    });
+  }
+
+  const insights = await gerarInsights(respostas, product);
+  res.status(200).json({ modo: 'produto_unico', ...insights });
 });
 
 // ─── Bloco 7: GET /api/nps/analytics ─────────────────────────────

@@ -937,31 +937,48 @@
       const grid = document.getElementById('insights-grid');
       grid.innerHTML = '<div class="insight-loading">✦ Analisando feedbacks com IA...</div>';
       try {
-        const r    = await fetch(`${API}/api/nps/insights`);
+        const r    = await fetch(`${API}/api/nps/insights${filtros()}`);
         const data = await r.json();
 
-        grid.innerHTML = `
-          <div class="insight-item">
-            <div class="insight-icon">⚠️</div>
-            <div class="insight-label">Pontos críticos</div>
-            <div class="insight-text">${data.pontos_criticos}</div>
-          </div>
-          <div class="insight-item">
-            <div class="insight-icon">✅</div>
-            <div class="insight-label">Pontos positivos</div>
-            <div class="insight-text">${data.pontos_positivos}</div>
-          </div>
-          <div class="insight-item ${data.alerta ? 'alerta' : ''}">
-            <div class="insight-icon">📦</div>
-            <div class="insight-label">Produto mais crítico</div>
-            <div class="insight-text">${data.produto_mais_critico}</div>
-          </div>
-          <div class="insight-item">
-            <div class="insight-icon">🎯</div>
-            <div class="insight-label">Ação recomendada</div>
-            <div class="insight-text">${data.acao_recomendada}</div>
-          </div>
-        `;
+        if (data.modo === 'por_produto') {
+          grid.innerHTML = data.insights.map(p => `
+            <div class="insight-item ${p.alerta ? 'alerta' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <span style="font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.5px">${p.produto}</span>
+                <span style="font-size:10px;color:rgba(255,255,255,0.4)">${p.total} respostas</span>
+              </div>
+              <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Crítico</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:10px;line-height:1.4">${p.pontos_criticos}</div>
+              <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Positivo</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:10px;line-height:1.4">${p.pontos_positivos}</div>
+              <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Ação</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4">${p.acao_recomendada}</div>
+            </div>
+          `).join('');
+        } else {
+          grid.innerHTML = `
+            <div class="insight-item">
+              <div class="insight-icon">⚠️</div>
+              <div class="insight-label">Pontos críticos</div>
+              <div class="insight-text">${data.pontos_criticos}</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-icon">✅</div>
+              <div class="insight-label">Pontos positivos</div>
+              <div class="insight-text">${data.pontos_positivos}</div>
+            </div>
+            <div class="insight-item ${data.alerta ? 'alerta' : ''}">
+              <div class="insight-icon">📦</div>
+              <div class="insight-label">${document.getElementById('f-product').value ? 'Categoria mais crítica' : 'Produto mais crítico'}</div>
+              <div class="insight-text">${data.produto_mais_critico}</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-icon">🎯</div>
+              <div class="insight-label">Ação recomendada</div>
+              <div class="insight-text">${data.acao_recomendada}</div>
+            </div>
+          `;
+        }
       } catch(e) {
         grid.innerHTML = '<div class="insight-loading">Não foi possível carregar os insights.</div>';
       }

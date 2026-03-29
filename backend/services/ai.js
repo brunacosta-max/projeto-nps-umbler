@@ -57,7 +57,7 @@ Categorias e subcategorias válidas:
   }
 }
 
-async function gerarInsights(respostas) {
+async function gerarInsights(respostas, produto) {
   if (respostas.length === 0) {
     return {
       pontos_criticos:      'Nenhuma resposta coletada ainda.',
@@ -68,19 +68,35 @@ async function gerarInsights(respostas) {
     };
   }
 
+  const detratores = respostas.filter(r => r.score <= 6).length;
+  const pctDetrat  = Math.round((detratores / respostas.length) * 100);
+
   const resumo = respostas.slice(-30).map(r =>
-    `- Nota ${r.score} | ${r.product} | ${r.customer_tier} | Categoria: ${r.ia_categoria || '?'} | Subcategoria: ${r.ia_subcategoria || '?'} | "${r.comment || 'sem comentário'}"`
+    `Nota ${r.score} | ${r.product} | ${r.ia_categoria || '?'} | ${r.ia_subcategoria || '?'}`
   ).join('\n');
 
-  const prompt = `Você é um analista de NPS da Umbler. Analise as respostas abaixo e gere insights acionáveis.
+  const contextoProduto = produto
+    ? `O filtro ativo é o produto: ${produto}. Como o produto já está filtrado, no campo "categoria_mais_critica" informe a CATEGORIA com mais problemas (ex: suporte, performance, usabilidade), não o nome do produto.`
+    : 'Analise todos os produtos e informe o produto com mais detratores no campo "produto_mais_critico".';
 
-Respostas:
+  const prompt = `Você é um analista sênior de NPS da Umbler. ${contextoProduto}
+
+Dados das últimas respostas (nota | produto | categoria | subcategoria):
 ${resumo}
 
-Responda APENAS com JSON válido sem markdown:
-{"pontos_criticos":"texto","pontos_positivos":"texto","produto_mais_critico":"nome","acao_recomendada":"texto","alerta":true}
+Com base nesses dados, gere uma análise SINTETIZADA e ACIONÁVEL. NÃO liste comentários. Resuma padrões encontrados.
 
-O campo alerta deve ser true se houver 30% ou mais de detratores.`;
+Responda APENAS com JSON válido sem markdown:
+{
+  "pontos_criticos": "síntese em 1 frase do principal problema identificado nos dados",
+  "pontos_positivos": "síntese em 1 frase do principal ponto forte identificado nos dados",
+  "produto_mais_critico": "${produto ? 'categoria com mais problemas (ex: suporte, performance)' : 'nome do produto com mais detratores'}",
+  "acao_recomendada": "1 ação concreta e específica que o time deveria tomar agora",
+  "alerta": true
+}
+
+O campo alerta é true se detratores >= 30%. Atualmente: ${pctDetrat}% de detratores.
+Seja direto e objetivo. Máximo 20 palavras por campo.`;
 
   try {
     const response = await groq.chat.completions.create({
