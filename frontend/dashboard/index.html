@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NPS Dashboard — Umbler</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    /* ─── Variáveis e reset ───────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:       #00C853;
+      --green-dark:  #00A846;
+      --green-light: #E8F9F0;
+      --navy:        #1A1A2E;
+      --navy-light:  #2D2D44;
+      --bg:          #F5F7FA;
+      --white:       #FFFFFF;
+      --text:        #1A1A2E;
+      --text-muted:  #6B7280;
+      --border:      #E5E7EB;
+      --red:         #EF4444;
+      --amber:       #F59E0B;
+      --radius:      12px;
+      --shadow:      0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── Navbar ──────────────────────────────────────────────────── */
+    .navbar {
+      background: var(--navy);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .navbar-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--green);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: white;
+    }
+
+    .navbar-title {
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .navbar-subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+    }
+
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-refresh {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-refresh:hover { background: rgba(255,255,255,0.18); }
+
+    /* ─── Layout principal ────────────────────────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ─── Filtros ─────────────────────────────────────────────────── */
+    .filters-bar {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .filters-bar label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 4px;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filters-bar select,
+    .filters-bar input[type="date"] {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .filters-bar select:focus,
+    .filters-bar input[type="date"]:focus {
+      border-color: var(--green);
+    }
+
+    .btn-filter {
+      background: var(--green);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-left: auto;
+    }
+
+    .btn-filter:hover { background: var(--green-dark); }
+
+    .btn-clear {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-clear:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    /* ─── Cards de métricas ───────────────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card.highlight {
+      background: var(--navy);
+      color: white;
+    }
+
+    .metric-card.highlight .metric-label { color: rgba(255,255,255,0.6); }
+    .metric-card.highlight .metric-value { color: var(--green); }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--green);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .metric-card.card-red::before    { background: var(--red); }
+    .metric-card.card-amber::before  { background: var(--amber); }
+    .metric-card.card-green::before  { background: var(--green); }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Grid de gráficos ────────────────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ─── Donut chart labels ──────────────────────────────────────── */
+    .donut-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 20px;
+    }
+
+    .donut-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .donut-center .big { font-size: 28px; font-weight: 700; color: var(--text); }
+    .donut-center .small { font-size: 11px; color: var(--text-muted); }
+
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .legend-left { display: flex; align-items: center; }
+    .legend-pct { font-weight: 600; }
+
+    /* ─── Insights IA ─────────────────────────────────────────────── */
+    .insights-card {
+      background: var(--navy);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .insights-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .ai-badge {
+      background: var(--green);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .insights-title {
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .insight-item {
+      background: rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .insight-item.alerta {
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .insight-icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .insight-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+    }
+
+    .insight-text {
+      font-size: 13px;
+      color: rgba(255,255,255,0.85);
+      line-height: 1.5;
+    }
+
+    .insight-loading {
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      text-align: center;
+      padding: 20px;
+      grid-column: 1 / -1;
+    }
+
+    /* ─── Tabela de respostas ─────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+
+    tbody td { padding: 12px 14px; color: var(--text); vertical-align: middle; }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .score-promotor  { background: #DCFCE7; color: #166534; }
+    .score-neutro    { background: #FEF9C3; color: #854D0E; }
+    .score-detrator  { background: #FEE2E2; color: #991B1B; }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .sentiment-positivo { color: #166534; background: #DCFCE7; border-color: #BBF7D0; }
+    .sentiment-negativo { color: #991B1B; background: #FEE2E2; border-color: #FECACA; }
+    .sentiment-neutro   { color: #854D0E; background: #FEF9C3; border-color: #FDE68A; }
+
+    /* ─── Estado vazio e loading ──────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    /* ─── Seções analíticas ──────────────────────────────────────── */
+    .secao-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .secao-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .secao-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .secao-icon.vermelho { background: #FEE2E2; }
+    .secao-icon.verde    { background: var(--green-light); }
+    .secao-icon.azul     { background: #EFF6FF; }
+    .secao-icon.amber    { background: #FEF9C3; }
+
+    @media (max-width: 900px) {
+      .secao-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Responsivo ──────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .metrics-grid  { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid   { grid-template-columns: 1fr; }
+      .insights-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .metrics-grid  { grid-template-columns: 1fr 1fr; }
+      .insights-grid { grid-template-columns: 1fr; }
+      .filters-bar   { flex-direction: column; align-items: stretch; }
+      .btn-filter    { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="#">
+      <div class="navbar-logo">U</div>
+      <div>
+        <div class="navbar-title">Umbler NPS</div>
+        <div class="navbar-subtitle">Dashboard analítico</div>
+      </div>
+    </a>
+    <div class="navbar-right">
+      <button class="btn-refresh" onclick="carregarDados()">↻ Atualizar</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label>Produto</label>
+        <select id="f-product">
+          <option value="">Todos</option>
+          <option value="hospedagem">Hospedagem</option>
+          <option value="email">E-mail</option>
+          <option value="umbler-talk">Umbler Talk</option>
+          <option value="dominio">Domínio</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Tier</label>
+        <select id="f-tier">
+          <option value="">Todos</option>
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Plano</label>
+        <select id="f-plan">
+          <option value="">Todos</option>
+          <option value="mensal">Mensal</option>
+          <option value="anual">Anual</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>De</label>
+        <input type="date" id="f-inicio">
+      </div>
+      <div class="filter-group">
+        <label>Até</label>
+        <input type="date" id="f-fim">
+      </div>
+      <button class="btn-clear" onclick="limparFiltros()">Limpar</button>
+      <button class="btn-filter" onclick="carregarDados()">Aplicar filtros</button>
+    </div>
+
+    <!-- Métricas -->
+    <div class="metrics-grid">
+      <div class="metric-card highlight">
+        <div class="metric-label">NPS Score</div>
+        <div class="metric-value" id="m-nps">—</div>
+        <div class="metric-sub" id="m-nps-label">Calculando...</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total respostas</div>
+        <div class="metric-value" id="m-total">—</div>
+        <div class="metric-sub">respostas coletadas</div>
+      </div>
+      <div class="metric-card card-green">
+        <div class="metric-label">Promotores</div>
+        <div class="metric-value" style="color:var(--green)" id="m-promotores">—</div>
+        <div class="metric-sub">notas 9 e 10</div>
+      </div>
+      <div class="metric-card card-amber">
+        <div class="metric-label">Neutros</div>
+        <div class="metric-value" style="color:var(--amber)" id="m-neutros">—</div>
+        <div class="metric-sub">notas 7 e 8</div>
+      </div>
+      <div class="metric-card card-red">
+        <div class="metric-label">Detratores</div>
+        <div class="metric-value" style="color:var(--red)" id="m-detratores">—</div>
+        <div class="metric-sub">notas 0 a 6</div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Distribuição das notas</span>
+          <span class="card-badge">últimas respostas</span>
+        </div>
+        <canvas id="chart-barras" height="90"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Promotores vs Detratores</span>
+        </div>
+        <div class="donut-wrap">
+          <canvas id="chart-donut"></canvas>
+          <div class="donut-center">
+            <div class="big" id="donut-center-value">—</div>
+            <div class="small">NPS</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <div class="legend-left">
+              <div class="legend-dot" style="background:#00C853"></div>
+              Promotores
+            </div>
+            <span class="legend-pct" id="pct-promotores">—</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-left">
+              <div class="legend-dot" style="background:#F59E0B"></div>
+              Neutros
+            </div>
+            <span class="legend-pct" id="pct-neutros">—</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-left">
+              <div class="legend-dot" style="background:#EF4444"></div>
+              Detratores
+            </div>
+            <span class="legend-pct" id="pct-detratores">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insights IA -->
+    <div class="insights-card">
+      <div class="insights-header">
+        <span class="ai-badge">✦ IA</span>
+        <span class="insights-title">Insights gerados por inteligência artificial</span>
+      </div>
+      <div class="insights-grid" id="insights-grid">
+        <div class="insight-loading">Carregando insights...</div>
+      </div>
+    </div>
+
+    <!-- Radar de risco -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="secao-header">
+        <div class="secao-icon vermelho">🚨</div>
+        <div>
+          <div class="card-title">Radar de risco — detratores recentes</div>
+          <div style="font-size:12px;color:var(--text-muted)">Clientes em risco de churn que precisam de ação imediata</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Risco</th>
+              <th>Produto</th>
+              <th>Tier</th>
+              <th>Comentário</th>
+              <th>Categoria</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="radar-risco-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Oportunidades de upsell -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="secao-header">
+        <div class="secao-icon verde">💚</div>
+        <div>
+          <div class="card-title">Oportunidades de expansão</div>
+          <div style="font-size:12px;color:var(--text-muted)">Promotores prontos para upgrade de plano ou produto</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Produto</th>
+              <th>Tier</th>
+              <th>Plano atual</th>
+              <th>Oportunidade</th>
+              <th>Comentário</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="oportunidades-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Voz do cliente -->
+    <div class="secao-grid" style="margin-bottom:24px">
+      <div class="card">
+        <div class="secao-header">
+          <div class="secao-icon verde">⭐</div>
+          <div>
+            <div class="card-title">Social proof</div>
+            <div style="font-size:12px;color:var(--text-muted)">Melhores depoimentos para marketing</div>
+          </div>
+        </div>
+        <div id="social-proof-lista" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+      <div class="card">
+        <div class="secao-header">
+          <div class="secao-icon amber">🗺️</div>
+          <div>
+            <div class="card-title">Voz dos neutros — roadmap</div>
+            <div style="font-size:12px;color:var(--text-muted)">O que falta para eles se tornarem promotores</div>
+          </div>
+        </div>
+        <div id="roadmap-lista"></div>
+      </div>
+    </div>
+
+    <!-- Tabela de respostas -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Respostas recentes</span>
+        <span class="card-badge" id="badge-total">0 respostas</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nota</th>
+              <th>Comentário</th>
+              <th>Produto</th>
+              <th>Tier</th>
+              <th>Plano</th>
+              <th>Categoria IA</th>
+              <th>Subcategoria IA</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon">📊</div>
+                  <div class="empty-text">Carregando respostas...</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+    let chartBarras = null;
+    let chartDonut  = null;
+
+    // ─── Analytics ────────────────────────────────────────────────
+    async function carregarAnalytics() {
+      try {
+        const r    = await fetch(`${API}/api/nps/analytics${filtros()}`);
+        const data = await r.json();
+        renderRadarRisco(data.detratores);
+        renderOportunidades(data.oportunidades);
+        renderVozCliente(data.voz_cliente);
+      } catch(e) { console.error('Erro analytics:', e); }
+    }
+
+    function renderRadarRisco(detratores) {
+      const el = document.getElementById('radar-risco-body');
+      if (!detratores.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhum detrator recente. Ótimo sinal!</div></div>`;
+        return;
+      }
+      el.innerHTML = detratores.map(r => {
+        const corRisco = r.risco === 'alto' ? '#EF4444' : r.risco === 'medio' ? '#F59E0B' : '#6B7280';
+        const labelRisco = r.risco === 'alto' ? '🔴 Alto' : r.risco === 'medio' ? '🟡 Médio' : '⚪ Baixo';
+        const data = new Date(r.created_at).toLocaleDateString('pt-BR');
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:12px 14px"><span class="score-badge score-detrator">${r.score}</span></td>
+          <td style="padding:12px 14px"><span style="font-size:12px;font-weight:700;color:${corRisco}">${labelRisco}</span></td>
+          <td style="padding:12px 14px"><span class="tag">${r.product}</span></td>
+          <td style="padding:12px 14px"><span class="tag">${r.customer_tier}</span></td>
+          <td style="padding:12px 14px;color:var(--text-muted);font-size:13px;max-width:200px">${r.comment || '—'}</td>
+          <td style="padding:12px 14px"><span class="tag">${r.ia_categoria || '—'}</span></td>
+          <td style="padding:12px 14px;color:var(--text-muted);font-size:12px">${data}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderOportunidades(oportunidades) {
+      const el = document.getElementById('oportunidades-body');
+      if (!oportunidades.length) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Nenhuma oportunidade identificada ainda.</div></div>`;
+        return;
+      }
+      el.innerHTML = oportunidades.map(r => {
+        const data = new Date(r.created_at).toLocaleDateString('pt-BR');
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:12px 14px"><span class="score-badge score-promotor">${r.score}</span></td>
+          <td style="padding:12px 14px"><span class="tag">${r.product}</span></td>
+          <td style="padding:12px 14px"><span class="tag">${r.customer_tier}</span></td>
+          <td style="padding:12px 14px"><span class="tag">${r.plan}</span></td>
+          <td style="padding:12px 14px"><span style="font-size:12px;font-weight:600;color:var(--green);background:var(--green-light);padding:3px 10px;border-radius:6px">${r.oportunidade}</span></td>
+          <td style="padding:12px 14px;color:var(--text-muted);font-size:13px;max-width:200px">${r.comment || '—'}</td>
+          <td style="padding:12px 14px;color:var(--text-muted);font-size:12px">${data}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderVozCliente(voz) {
+      const spEl = document.getElementById('social-proof-lista');
+      spEl.innerHTML = (voz.social_proof || []).map(r => `
+        <div style="background:var(--bg);border-radius:10px;padding:16px;border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span class="score-badge score-promotor" style="width:auto;padding:0 10px">${r.score} ★</span>
+            <span class="tag">${r.product}</span>
+            <button onclick="toggleSocialProof(this, '${r.score}')"
+              style="font-size:11px;font-weight:600;padding:4px 12px;border-radius:6px;border:none;cursor:pointer;background:${r.aprovado ? '#DCFCE7' : 'var(--border)'};color:${r.aprovado ? '#166534' : 'var(--text-muted)'}">
+              ${r.aprovado ? '✓ Aprovado' : 'Aprovar'}
+            </button>
+          </div>
+          <p style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic">"${r.comment}"</p>
+        </div>
+      `).join('') || '<p style="color:var(--text-muted);font-size:13px">Nenhum comentário positivo longo ainda.</p>';
+
+      const rmEl = document.getElementById('roadmap-lista');
+      const categorias = Object.entries(voz.roadmap || {});
+      rmEl.innerHTML = categorias.length ? categorias.map(([cat, comments]) => `
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">${cat} (${comments.length})</div>
+          ${comments.slice(0,3).map(c => `<div style="font-size:13px;color:var(--text);padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;border-left:3px solid var(--amber)">"${c}"</div>`).join('')}
+        </div>
+      `).join('') : '<p style="color:var(--text-muted);font-size:13px">Nenhum feedback de neutro ainda.</p>';
+    }
+
+    function toggleSocialProof(btn, score) {
+      const aprovado = btn.textContent.trim() === 'Aprovar';
+      btn.style.background = aprovado ? '#DCFCE7' : 'var(--border)';
+      btn.style.color = aprovado ? '#166534' : 'var(--text-muted)';
+      btn.textContent = aprovado ? '✓ Aprovado' : 'Aprovar';
+    }
+
+    // ─── Carregar todos os dados ──────────────────────────────────
+    async function carregarDados() {
+      await Promise.all([carregarScore(), carregarRespostas(), carregarInsights(), carregarAnalytics()]);
+    }
+
+    // ─── Montar query string dos filtros ─────────────────────────
+    function filtros() {
+      const p  = document.getElementById('f-product').value;
+      const t  = document.getElementById('f-tier').value;
+      const pl = document.getElementById('f-plan').value;
+      const di = document.getElementById('f-inicio').value;
+      const df = document.getElementById('f-fim').value;
+      const params = new URLSearchParams();
+      if (p)  params.append('product', p);
+      if (t)  params.append('customer_tier', t);
+      if (pl) params.append('plan', pl);
+      if (di) params.append('data_inicio', di);
+      if (df) params.append('data_fim', df);
+      return params.toString() ? '?' + params.toString() : '';
+    }
+
+    // ─── Score NPS ────────────────────────────────────────────────
+    async function carregarScore() {
+      try {
+        const r    = await fetch(`${API}/api/nps/score${filtros()}`);
+        const data = await r.json();
+
+        document.getElementById('m-nps').textContent        = data.nps;
+        document.getElementById('m-total').textContent      = data.total;
+        document.getElementById('m-promotores').textContent = data.promotores;
+        document.getElementById('m-neutros').textContent    = data.neutros;
+        document.getElementById('m-detratores').textContent = data.detratores;
+        document.getElementById('donut-center-value').textContent = data.nps;
+
+        const label = data.nps >= 75 ? '🏆 Excelente'
+                    : data.nps >= 50 ? '😊 Muito bom'
+                    : data.nps >= 0  ? '😐 Razoável'
+                    : '😟 Crítico';
+
+        const cor = data.nps >= 50 ? '#00C853'
+                  : data.nps >= 0  ? '#F59E0B'
+                  : '#EF4444';
+
+        document.getElementById('m-nps').style.color       = cor;
+        document.getElementById('donut-center-value').style.color = cor;
+        document.getElementById('m-nps-label').textContent = label;
+
+        const total = data.total || 1;
+        const pp = Math.round(data.promotores  / total * 100);
+        const pn = Math.round(data.neutros     / total * 100);
+        const pd = Math.round(data.detratores  / total * 100);
+        document.getElementById('pct-promotores').textContent = pp + '%';
+        document.getElementById('pct-neutros').textContent    = pn + '%';
+        document.getElementById('pct-detratores').textContent = pd + '%';
+
+        renderDonut(data.promotores, data.neutros, data.detratores);
+      } catch(e) { console.error('Erro score:', e); }
+    }
+
+    // ─── Respostas ────────────────────────────────────────────────
+    async function carregarRespostas() {
+      try {
+        const r    = await fetch(`${API}/api/nps${filtros()}`);
+        const data = await r.json();
+        const respostas = data.respostas || [];
+
+        document.getElementById('badge-total').textContent = respostas.length + ' respostas';
+
+        renderTabela(respostas);
+        renderBarras(respostas);
+      } catch(e) { console.error('Erro respostas:', e); }
+    }
+
+    // ─── Insights IA ──────────────────────────────────────────────
+    async function carregarInsights() {
+      const grid = document.getElementById('insights-grid');
+      grid.innerHTML = '<div class="insight-loading">✦ Analisando feedbacks com IA...</div>';
+      try {
+        const r    = await fetch(`${API}/api/nps/insights`);
+        const data = await r.json();
+
+        grid.innerHTML = `
+          <div class="insight-item">
+            <div class="insight-icon">⚠️</div>
+            <div class="insight-label">Pontos críticos</div>
+            <div class="insight-text">${data.pontos_criticos}</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">✅</div>
+            <div class="insight-label">Pontos positivos</div>
+            <div class="insight-text">${data.pontos_positivos}</div>
+          </div>
+          <div class="insight-item ${data.alerta ? 'alerta' : ''}">
+            <div class="insight-icon">📦</div>
+            <div class="insight-label">Produto mais crítico</div>
+            <div class="insight-text">${data.produto_mais_critico}</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">🎯</div>
+            <div class="insight-label">Ação recomendada</div>
+            <div class="insight-text">${data.acao_recomendada}</div>
+          </div>
+        `;
+      } catch(e) {
+        grid.innerHTML = '<div class="insight-loading">Não foi possível carregar os insights.</div>';
+      }
+    }
+
+    // ─── Gráfico de barras ────────────────────────────────────────
+    function renderBarras(respostas) {
+      const contagem = Array(11).fill(0);
+      respostas.forEach(r => { if (r.score >= 0 && r.score <= 10) contagem[r.score]++; });
+
+      const cores = contagem.map((_, i) =>
+        i >= 9 ? '#00C853' : i >= 7 ? '#F59E0B' : '#EF4444'
+      );
+
+      const ctx = document.getElementById('chart-barras').getContext('2d');
+      if (chartBarras) chartBarras.destroy();
+      chartBarras = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['0','1','2','3','4','5','6','7','8','9','10'],
+          datasets: [{
+            data: contagem,
+            backgroundColor: cores,
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1, font: { size: 12 } },
+              grid: { color: '#F3F4F6' }
+            },
+            x: {
+              ticks: { font: { size: 12 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    // ─── Gráfico donut ────────────────────────────────────────────
+    function renderDonut(prom, neut, detr) {
+      const ctx = document.getElementById('chart-donut').getContext('2d');
+      if (chartDonut) chartDonut.destroy();
+      chartDonut = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [prom, neut, detr],
+            backgroundColor: ['#00C853', '#F59E0B', '#EF4444'],
+            borderWidth: 0,
+            hoverOffset: 4,
+          }]
+        },
+        options: {
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // ─── Tabela ───────────────────────────────────────────────────
+    function renderTabela(respostas) {
+      const tbody = document.getElementById('tabela-body');
+
+      if (!respostas.length) {
+        tbody.innerHTML = `<tr><td colspan="8">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-text">Nenhuma resposta encontrada para os filtros selecionados.</div>
+          </div>
+        </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = [...respostas].reverse().map(r => {
+        const cls = r.score >= 9 ? 'score-promotor' : r.score >= 7 ? 'score-neutro' : 'score-detrator';
+        const sentCls = r.ia_sentimento ? `sentiment-${r.ia_sentimento}` : '';
+        const data = new Date(r.created_at).toLocaleDateString('pt-BR');
+        const hora = new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        return `<tr>
+          <td><span class="score-badge ${cls}">${r.score}</span></td>
+          <td style="max-width:220px;color:var(--text-muted)">${r.comment || '<em style="color:var(--border)">sem comentário</em>'}</td>
+          <td><span class="tag">${r.product}</span></td>
+          <td><span class="tag">${r.customer_tier}</span></td>
+          <td><span class="tag">${r.plan}</span></td>
+          <td><span class="tag">${r.ia_categoria || '—'}</span></td>
+          <td><span class="tag">${r.ia_subcategoria || '—'}</span></td>
+          <td style="color:var(--text-muted);white-space:nowrap">${data} ${hora}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ─── Limpar filtros ───────────────────────────────────────────
+    function limparFiltros() {
+      ['f-product','f-tier','f-plan','f-inicio','f-fim']
+        .forEach(id => document.getElementById(id).value = '');
+      carregarDados();
+    }
+
+    // ─── Iniciar ──────────────────────────────────────────────────
+    carregarDados();
+  </script>
+</body>
+</html>

@@ -1,90 +1,98 @@
-// ─── Dependências ────────────────────────────────────────────────
-const Anthropic = require('@anthropic-ai/sdk');
+const Groq = require('groq-sdk');
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-console.log('Chave API carregada:', process.env.ANTHROPIC_API_KEY ? 'SIM' : 'NÃO');
+console.log('Groq API carregada:', process.env.GROQ_API_KEY ? 'SIM' : 'NÃO');
 
-// ─── Analisar comentário individual ──────────────────────────────
 async function analisarComentario(score, comment, product) {
+  console.log('analisarComentario chamado:', { score, comment, product });
+
   if (!comment || comment.trim() === '') {
+    console.log('Sem comentário — retornando padrão');
     return {
-      sentimento: score >= 9 ? 'positivo' : score >= 7 ? 'neutro' : 'negativo',
-      categoria:  'sem comentário',
-      resumo:     'Cliente não deixou comentário.'
+      categoria:    'sem comentário',
+      subcategoria: 'sem comentário',
+      resumo:       'Cliente não deixou comentário.'
     };
   }
 
-  const prompt = `Você é um analista de NPS da empresa Umbler, que oferece serviços de hospedagem, email, domínios e Umbler Talk.
+  console.log('Chamando Groq...');
 
-Um cliente avaliou o produto "${product}" com nota ${score}/10 e deixou o seguinte comentário:
-"${comment}"
+  const prompt = `Você é um analista de NPS da Umbler. Um cliente avaliou o produto "${product}" com nota ${score}/10 e disse: "${comment}".
 
-Responda APENAS com um JSON válido, sem texto adicional, neste formato exato:
-{
-  "sentimento": "positivo" | "neutro" | "negativo",
-  "categoria": "suporte" | "performance" | "preco" | "usabilidade" | "estabilidade" | "recursos" | "outro",
-  "resumo": "uma frase curta de até 15 palavras resumindo o feedback"
-}`;
+Responda APENAS com JSON válido sem markdown:
+{"categoria":"suporte","subcategoria":"tempo de resposta","resumo":"frase curta de até 10 palavras"}
+
+Categorias e subcategorias válidas:
+- suporte: tempo de resposta, qualidade da solução, cordialidade, disponibilidade
+- performance: lentidão, instabilidade, quedas, tempo de carregamento
+- preco: custo elevado, falta de transparência, custo-benefício, cobrança indevida
+- usabilidade: interface confusa, fluxo complexo, falta de documentação, onboarding
+- estabilidade: serviço fora do ar, erros recorrentes, perda de dados
+- recursos: funcionalidade faltante, integração, customização, automação
+- outro: geral`;
 
   try {
-    const response = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 150,
-      messages:   [{ role: 'user', content: prompt }]
+    const response = await groq.chat.completions.create({
+      model:       'llama-3.1-8b-instant',
+      messages:    [{ role: 'user', content: prompt }],
+      max_tokens:  150,
+      temperature: 0.1
     });
-
-    const texto = response.content[0].text.trim();
-    return JSON.parse(texto);
-
-  } catch (erro) {
-    console.error('Erro na análise de IA:', erro.status, erro.message, erro.error);
+    const texto  = response.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(texto);
+    console.log('Groq respondeu:', parsed);
     return {
-      sentimento: 'neutro',
-      categoria:  'outro',
-      resumo:     'Não foi possível analisar o comentário.'
+      categoria:    parsed.categoria    || 'outro',
+      subcategoria: parsed.subcategoria || 'geral',
+      resumo:       parsed.resumo       || 'Sem resumo.'
+    };
+  } catch (erro) {
+    console.error('Erro análise Groq:', erro.message);
+    return {
+      categoria:    'outro',
+      subcategoria: 'geral',
+      resumo:       'Não foi possível analisar.'
     };
   }
 }
 
-// ─── Gerar insights do conjunto de respostas ──────────────────────
 async function gerarInsights(respostas) {
   if (respostas.length === 0) {
-    return { insights: 'Nenhuma resposta coletada ainda.' };
+    return {
+      pontos_criticos:      'Nenhuma resposta coletada ainda.',
+      pontos_positivos:     'Nenhuma resposta coletada ainda.',
+      produto_mais_critico: 'indefinido',
+      acao_recomendada:     'Colete mais respostas para gerar insights.',
+      alerta:               false
+    };
   }
 
-  const resumo = respostas.slice(-50).map(r =>
-    `- Nota ${r.score} | ${r.product} | ${r.customer_tier} | "${r.comment || 'sem comentário'}"`
+  const resumo = respostas.slice(-30).map(r =>
+    `- Nota ${r.score} | ${r.product} | ${r.customer_tier} | Categoria: ${r.ia_categoria || '?'} | Subcategoria: ${r.ia_subcategoria || '?'} | "${r.comment || 'sem comentário'}"`
   ).join('\n');
 
-  const prompt = `Você é um analista de NPS da Umbler. Analise as últimas respostas coletadas e gere insights acionáveis para o time de produto.
+  const prompt = `Você é um analista de NPS da Umbler. Analise as respostas abaixo e gere insights acionáveis.
 
-Respostas recentes:
+Respostas:
 ${resumo}
 
-Responda APENAS com um JSON válido, sem texto adicional, neste formato exato:
-{
-  "pontos_criticos": "frase descrevendo o principal problema identificado",
-  "pontos_positivos": "frase descrevendo o principal elogio identificado",
-  "produto_mais_critico": "nome do produto com mais insatisfação",
-  "acao_recomendada": "uma ação concreta que o time deveria tomar agora",
-  "alerta": true | false
-}`;
+Responda APENAS com JSON válido sem markdown:
+{"pontos_criticos":"texto","pontos_positivos":"texto","produto_mais_critico":"nome","acao_recomendada":"texto","alerta":true}
+
+O campo alerta deve ser true se houver 30% ou mais de detratores.`;
 
   try {
-    const response = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages:   [{ role: 'user', content: prompt }]
+    const response = await groq.chat.completions.create({
+      model:       'llama-3.1-8b-instant',
+      messages:    [{ role: 'user', content: prompt }],
+      max_tokens:  300,
+      temperature: 0.1
     });
-
-    const texto = response.content[0].text.trim();
+    const texto = response.choices[0].message.content.trim().replace(/```json|```/g, '').trim();
     return JSON.parse(texto);
-
   } catch (erro) {
-    console.error('Erro ao gerar insights:', erro.message);
+    console.error('Erro insights Groq:', erro.message);
     return {
       pontos_criticos:      'Não foi possível analisar.',
       pontos_positivos:     'Não foi possível analisar.',

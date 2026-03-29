@@ -20,6 +20,7 @@ function salvarBanco(dados) {
 
 // ─── Bloco 3: POST /api/nps ───────────────────────────────────────
 router.post('/', async (req, res) => {
+  console.log('POST recebido:', req.body);
   const { score, comment, product, customer_tier, plan } = req.body;
 
   if (score === undefined || score < 0 || score > 10) {
@@ -38,16 +39,16 @@ router.post('/', async (req, res) => {
   }
 
   const novaResposta = {
-    id:            Date.now().toString(),
-    score:         Number(score),
-    comment:       comment || '',
-    product:       product || 'não informado',
-    customer_tier: customer_tier || 'não informado',
-    plan:          plan || 'não informado',
-    created_at:    new Date().toISOString(),
-    ia_sentimento: analise.sentimento,
-    ia_categoria:  analise.categoria,
-    ia_resumo:     analise.resumo
+    id:               Date.now().toString(),
+    score:            Number(score),
+    comment:          comment || '',
+    product:          product || 'não informado',
+    customer_tier:    customer_tier || 'não informado',
+    plan:             plan || 'não informado',
+    created_at:       new Date().toISOString(),
+    ia_categoria:     analise.categoria,
+    ia_subcategoria:  analise.subcategoria,
+    ia_resumo:        analise.resumo
   };
 
   const banco = lerBanco();
@@ -82,26 +83,27 @@ router.get('/', (req, res) => {
 
 // ─── Bloco 5: GET /api/nps/score ─────────────────────────────────
 router.get('/score', (req, res) => {
+  const { product, customer_tier, plan, data_inicio, data_fim } = req.query;
+
   const banco = lerBanco();
-  const respostas = banco.responses;
+  let respostas = banco.responses;
+
+  if (product)       respostas = respostas.filter(r => r.product === product);
+  if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
+  if (plan)          respostas = respostas.filter(r => r.plan === plan);
+  if (data_inicio)   respostas = respostas.filter(r => r.created_at >= data_inicio);
+  if (data_fim)      respostas = respostas.filter(r => r.created_at <= data_fim);
 
   if (respostas.length === 0) {
-    return res.status(200).json({ nps: 0, mensagem: 'Nenhuma resposta ainda.' });
+    return res.status(200).json({ nps: 0, total: 0, promotores: 0, neutros: 0, detratores: 0, mensagem: 'Nenhuma resposta ainda.' });
   }
 
   const promotores = respostas.filter(r => r.score >= 9).length;
   const detratores = respostas.filter(r => r.score <= 6).length;
   const total      = respostas.length;
+  const nps        = Math.round(((promotores - detratores) / total) * 100);
 
-  const nps = Math.round(((promotores - detratores) / total) * 100);
-
-  res.status(200).json({
-    nps,
-    total,
-    promotores,
-    neutros:   total - promotores - detratores,
-    detratores
-  });
+  res.status(200).json({ nps, total, promotores, neutros: total - promotores - detratores, detratores });
 });
 
 // ─── Bloco 6: GET /api/nps/insights ──────────────────────────────
@@ -109,6 +111,95 @@ router.get('/insights', async (req, res) => {
   const banco     = lerBanco();
   const insights  = await gerarInsights(banco.responses);
   res.status(200).json(insights);
+});
+
+// ─── Bloco 7: GET /api/nps/analytics ─────────────────────────────
+router.get('/analytics', (req, res) => {
+  const { product, customer_tier, plan, data_inicio, data_fim } = req.query;
+
+  const banco = lerBanco();
+  let respostas = banco.responses;
+
+  if (product)       respostas = respostas.filter(r => r.product === product);
+  if (customer_tier) respostas = respostas.filter(r => r.customer_tier === customer_tier);
+  if (plan)          respostas = respostas.filter(r => r.plan === plan);
+  if (data_inicio)   respostas = respostas.filter(r => r.created_at >= data_inicio);
+  if (data_fim)      respostas = respostas.filter(r => r.created_at <= data_fim);
+
+  // Radar de risco — detratores recentes agrupados
+  const detratores = respostas
+    .filter(r => r.score <= 6)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 10)
+    .map(r => ({
+      id:            r.id,
+      score:         r.score,
+      product:       r.product,
+      customer_tier: r.customer_tier,
+      plan:          r.plan,
+      comment:       r.comment,
+      ia_categoria:  r.ia_categoria,
+      created_at:    r.created_at,
+      risco:         r.score <= 3 ? 'alto' : r.score <= 5 ? 'medio' : 'baixo'
+    }));
+
+  // Oportunidades de upsell — promotores em planos menores
+  const oportunidades = respostas
+    .filter(r => r.score >= 9 && (r.customer_tier === 'free' || r.plan === 'mensal'))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .map(r => ({
+      id:            r.id,
+      score:         r.score,
+      product:       r.product,
+      customer_tier: r.customer_tier,
+      plan:          r.plan,
+      comment:       r.comment,
+      created_at:    r.created_at,
+      oportunidade:  r.customer_tier === 'free' ? 'upgrade para pro'
+                   : r.plan === 'mensal'         ? 'migrar para anual'
+                   : 'expansão'
+    }));
+
+  // Voz do cliente — melhores comentários positivos e neutros por categoria
+  const vozCliente = {
+    social_proof: respostas
+      .filter(r => r.score >= 9 && r.comment && r.comment.length > 20)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(r => ({
+        score:   r.score,
+        comment: r.comment,
+        product: r.product,
+        aprovado: r.aprovado_social_proof || false
+      })),
+    roadmap: respostas
+      .filter(r => r.score >= 7 && r.score <= 8 && r.comment && r.comment.length > 10)
+      .reduce((acc, r) => {
+        const cat = r.ia_categoria || 'outro';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(r.comment);
+        return acc;
+      }, {})
+  };
+
+  res.status(200).json({ detratores, oportunidades, voz_cliente: vozCliente });
+});
+
+// ─── Bloco 8: PATCH /api/nps/:id/social-proof ────────────────────
+router.patch('/:id/social-proof', (req, res) => {
+  const banco = lerBanco();
+  const idx   = banco.responses.findIndex(r => r.id === req.params.id);
+
+  if (idx === -1) return res.status(404).json({ erro: 'Resposta não encontrada.' });
+
+  banco.responses[idx].aprovado_social_proof = !banco.responses[idx].aprovado_social_proof;
+  salvarBanco(banco);
+
+  res.status(200).json({
+    mensagem: 'Social proof atualizado!',
+    aprovado: banco.responses[idx].aprovado_social_proof
+  });
 });
 
 // ─── Exportar o router ────────────────────────────────────────────

@@ -1,5 +1,5 @@
 window.UmblerNPS = {
-  product:       "hospedagem",
+  product:       "umbler-talk",
   customer_tier: "pro",
   plan:          "anual",
   api_url:       "http://localhost:3000",

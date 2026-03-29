@@ -107,6 +107,84 @@
       "ia_sentimento": "neutro",
       "ia_categoria": "outro",
       "ia_resumo": "Não foi possível analisar o comentário."
+    },
+    {
+      "id": "1774804892488",
+      "score": 10,
+      "comment": "As configurações do talk são muito boas, didáticas e fáceis de configurar as automações. Sem dúvidas a melhor interface que já utilizei.",
+      "product": "hospedagem",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:21:32.489Z",
+      "ia_categoria": "usabilidade",
+      "ia_resumo": "Cliente satisfeito com hospedagem."
+    },
+    {
+      "id": "1774805611274",
+      "score": 3,
+      "comment": "O suporte demorou 2 dias para responder meu ticket",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:33:31.275Z",
+      "ia_categoria": "suporte",
+      "ia_resumo": "Cliente insatisfeito com umbler-talk."
+    },
+    {
+      "id": "1774805783740",
+      "score": 10,
+      "comment": "Tenho um suporte sempre muito bom da minha gerente de contas.",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:36:23.740Z",
+      "ia_categoria": "suporte",
+      "ia_resumo": "Cliente satisfeito com umbler-talk."
+    },
+    {
+      "id": "1774805955312",
+      "score": 5,
+      "comment": "O produto é muito bom, porém recorrentemente tenho problemas de estabilidade e conexão",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:39:15.312Z",
+      "ia_categoria": "outro",
+      "ia_resumo": "Cliente insatisfeito com umbler-talk."
+    },
+    {
+      "id": "1774806399914",
+      "score": 3,
+      "comment": "Sempre que tento acessar a ferramenta, ela trava",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:46:39.914Z",
+      "ia_categoria": "outro",
+      "ia_resumo": "Cliente insatisfeito com umbler-talk."
+    },
+    {
+      "id": "1774806555922",
+      "score": 9,
+      "comment": "Migrar para o umbler foi a melhor cois que fiz, minhas automações rodam muito mellhor agora.",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:49:15.922Z",
+      "ia_categoria": "usabilidade",
+      "ia_resumo": "Cliente satisfeito com umbler-talk."
+    },
+    {
+      "id": "1774806815705",
+      "score": 9,
+      "comment": "Sempre sou muito bem atendida quando preciso.",
+      "product": "umbler-talk",
+      "customer_tier": "pro",
+      "plan": "anual",
+      "created_at": "2026-03-29T17:53:35.705Z",
+      "ia_categoria": "suporte",
+      "ia_subcategoria": "cordialidade",
+      "ia_resumo": "atendimento eficaz e rápido"
     }
   ],
   "rules": {
