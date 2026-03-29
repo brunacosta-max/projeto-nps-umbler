@@ -20,6 +20,9 @@ app.use(express.json());
 app.use('/snippet',   express.static(path.join(__dirname, '../frontend/snippet')));
 app.use('/dashboard', express.static(path.join(__dirname, '../frontend/dashboard')));
 app.use('/teste',     express.static(path.join(__dirname, '../')));
+app.get('/teste-widget', (req, res) => {
+  res.sendFile(path.join(__dirname, '../teste-widget.html'));
+});
 
 // ─── Bloco 4: Rotas ───────────────────────────────────────────────
 const npsRoutes = require('./routes/nps');

@@ -107,7 +107,7 @@ Exibe o painel completo com métricas, gráficos, insights de IA, radar de risco
 
 ### Widget de coleta (snippet)
 ```
-http://localhost:3000/teste/teste-widget.html
+http://localhost:3000/teste-widget
 ```
 Simula um produto da Umbler com o widget instalado. Após 2 segundos o popup aparece no canto inferior direito.
 
@@ -119,7 +119,7 @@ O widget possui uma regra de **cooldown de 90 dias** — após responder uma pes
 
 Para resetar e testar novamente:
 
-1. Acesse `http://localhost:3000/teste/teste-widget.html`
+1. Acesse `http://localhost:3000/teste-widget`
 2. Pressione `F12` para abrir as ferramentas do desenvolvedor
 3. Vá na aba **Console**
 4. Digite o comando abaixo e pressione Enter:
