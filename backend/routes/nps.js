@@ -6,6 +6,8 @@ const path    = require('path');
 
 const DB_PATH = path.join(__dirname, '../models/database.json');
 
+const { analisarComentario, gerarInsights } = require('../services/ai');
+
 // ─── Bloco 2: Funções auxiliares ─────────────────────────────────
 function lerBanco() {
   const conteudo = fs.readFileSync(DB_PATH, 'utf-8');
@@ -17,13 +19,22 @@ function salvarBanco(dados) {
 }
 
 // ─── Bloco 3: POST /api/nps ───────────────────────────────────────
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { score, comment, product, customer_tier, plan } = req.body;
 
   if (score === undefined || score < 0 || score > 10) {
     return res.status(400).json({
       erro: 'A nota (score) é obrigatória e deve ser entre 0 e 10.'
     });
+  }
+
+  let analise;
+  let erroIA = null;
+  try {
+    analise = await analisarComentario(score, comment, product || 'não informado');
+  } catch (e) {
+    erroIA = e.message;
+    analise = { sentimento: 'neutro', categoria: 'outro', resumo: 'erro na IA' };
   }
 
   const novaResposta = {
@@ -33,7 +44,10 @@ router.post('/', (req, res) => {
     product:       product || 'não informado',
     customer_tier: customer_tier || 'não informado',
     plan:          plan || 'não informado',
-    created_at:    new Date().toISOString()
+    created_at:    new Date().toISOString(),
+    ia_sentimento: analise.sentimento,
+    ia_categoria:  analise.categoria,
+    ia_resumo:     analise.resumo
   };
 
   const banco = lerBanco();
@@ -42,7 +56,8 @@ router.post('/', (req, res) => {
 
   res.status(201).json({
     mensagem: 'Resposta registrada com sucesso!',
-    dados: novaResposta
+    dados: novaResposta,
+    debug_ia: erroIA
   });
 });
 
@@ -87,6 +102,13 @@ router.get('/score', (req, res) => {
     neutros:   total - promotores - detratores,
     detratores
   });
+});
+
+// ─── Bloco 6: GET /api/nps/insights ──────────────────────────────
+router.get('/insights', async (req, res) => {
+  const banco     = lerBanco();
+  const insights  = await gerarInsights(banco.responses);
+  res.status(200).json(insights);
 });
 
 // ─── Exportar o router ────────────────────────────────────────────
